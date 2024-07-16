@@ -3,6 +3,25 @@ import requests
 from lxml import html
 import os
 
+def verificar_e_criar_pasta_arquivo(caminho_pasta, nome_arquivo):
+    # Verifica se a pasta existe
+    if not os.path.exists(caminho_pasta):
+        os.makedirs(caminho_pasta)
+        print(f'Pasta "{caminho_pasta}" criada.')
+    else:
+        print(f'Pasta "{caminho_pasta}" já existe.')
+
+    # Caminho completo do arquivo
+    caminho_arquivo = os.path.join(caminho_pasta, nome_arquivo)
+    
+    # Verifica se o arquivo existe
+    if not os.path.exists(caminho_arquivo):
+        with open(caminho_arquivo, 'w') as arquivo:
+            arquivo.write('')  # Cria um arquivo vazio
+        print(f'Arquivo "{caminho_arquivo}" criado.')
+    else:
+        print(f'Arquivo "{caminho_arquivo}" já existe.')
+
 # Define a URL onde vamos fazer as consultas
 url = 'https://api.casadosdados.com.br/v2/public/cnpj/search'
 
@@ -71,7 +90,6 @@ for i in range(1, 10):
         print(f'Erro na solicitação (Código {response.status_code}): {response.text}')
         break
 
-    print(resultado)
     if 'cnpj' in resultado['data']:
         df_provisorio = pd.json_normalize(resultado, ['data', 'cnpj'])
         df_final = pd.concat([df_final, df_provisorio], axis=0)
@@ -225,16 +243,18 @@ df_consolidado = pd.concat([df_final, df_dados_extraidos], axis=1)
 
 print('Salvando no arquivo XLSX...')
 
-nome_arquivo = 'planilha-com-novos-dados'
-
+nome_arquivo = 'planilha-com-novos-dados.xlsx'
 current_dir = os.path.dirname(os.path.abspath(__file__))
+pasta_resultados = current_dir + "/resultados"
+verificar_e_criar_pasta_arquivo(pasta_resultados, nome_arquivo)
+
 for i in range(50):
     try:
         if i == 0:
-            df_consolidado.to_excel(f'{current_dir}/{nome_arquivo}.xlsx', index=False)
+            df_consolidado.to_excel(f'{pasta_resultados}/{nome_arquivo}', index=False)
             print(f'Arquivo "{nome_arquivo}.xlsx" salvo com sucesso.')
             break
-        df_consolidado.to_excel(f'{current_dir}/{nome_arquivo}{i}.xlsx', index=False)
+        df_consolidado.to_excel(f'{pasta_resultados}/{nome_arquivo.replace(".xlsx", "")}{i}.xlsx', index=False)
         print(f'Arquivo "{nome_arquivo}{i}.xlsx" salvo com sucesso.')
         break
     except Exception as e:
